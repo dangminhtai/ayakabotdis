@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -100,3 +100,6 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🌐 Express server đang lắng nghe tại cổng ${PORT}`);
 });
+
+// Register message listener
+client.on(Events.MessageCreate, require('./events/messageListener').execute);

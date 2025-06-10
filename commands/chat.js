@@ -1,29 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
-const ayakaVN = require('../language/ayaka_vn');
-const ayakaEN = require('../language/ayaka_en');
 const { generateResponse } = require('../config/aiConfig');
-
-// Function to get prompt based on language
-function getPrompt(language) {
-    switch (language) {
-        case 'en':
-            return ayakaEN.AYAKA_PROMPT;
-        case 'vn':
-        default:
-            return ayakaVN.AYAKA_PROMPT;
-    }
-}
-
-// Function to get error message based on language
-function getErrorMessage(language) {
-    switch (language) {
-        case 'en':
-            return ayakaEN.ERROR_MESSAGE;
-        case 'vn':
-        default:
-            return ayakaVN.ERROR_MESSAGE;
-    }
-}
+const ayakaHelpers = require('../utils/ayakaHelpers');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -37,26 +14,44 @@ module.exports = {
     async execute(interaction) {
         let deferred = false;
         try {
-            // Defer reply trước để tránh timeout
             await interaction.deferReply();
             deferred = true;
 
             const message = interaction.options.getString('message');
             const userLanguage = interaction.client.userLanguage?.get(interaction.user.id) || 'vn';
-            const systemPrompt = getPrompt(userLanguage);
+            const systemPrompt = ayakaHelpers.getPrompt(userLanguage);
 
             try {
-                const response = await generateResponse(message, systemPrompt, userLanguage);
+                // Get chat context
+                const chatContext = await ayakaHelpers.getChatContext(interaction.user.id);
+                
+                // Enhance prompt with context
+                const enhancedPrompt = ayakaHelpers.enhancePromptWithContext(
+                    systemPrompt,
+                    chatContext,
+                    message,
+                    userLanguage
+                );
+
+                const response = await generateResponse(message, enhancedPrompt, userLanguage);
                 await interaction.editReply(response);
+                
+                // Save chat history
+                await ayakaHelpers.saveChatHistory(
+                    interaction.user.id,
+                    interaction.user.username,
+                    message,
+                    response,
+                    userLanguage
+                );
             } catch (error) {
                 console.error('Error generating response:', error);
-                const errorMessage = getErrorMessage(userLanguage);
+                const errorMessage = ayakaHelpers.getErrorMessage(userLanguage);
                 await interaction.editReply(errorMessage);
             }
         } catch (error) {
             console.error('Error in chat command:', error);
             
-            // Nếu defer thất bại, thử reply trực tiếp
             try {
                 if (!deferred && !interaction.replied) {
                     await interaction.reply({
