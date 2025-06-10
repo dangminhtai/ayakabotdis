@@ -14,6 +14,7 @@ module.exports = {
         // Check for Ayaka mentions or references
         const isMentioned = message.mentions.users.has(client.user.id);
         const hasAyakaName = message.content.toLowerCase().includes('ayaka');
+        const isDM = message.channel.type === 'DM';
         let isReplyToAyaka = false;
 
         if (message.reference?.messageId) {
@@ -25,8 +26,8 @@ module.exports = {
             }
         }
 
-        // Process message if it mentions Ayaka or is a reply
-        if (isMentioned || isReplyToAyaka || hasAyakaName) {
+        // Process message if it mentions Ayaka, is a reply, has Ayaka's name, or is a DM
+        if (isMentioned || isReplyToAyaka || hasAyakaName || isDM) {
             try {
                 // Show typing indicator
                 await message.channel.sendTyping();
@@ -42,6 +43,8 @@ module.exports = {
                     enhancedMessage = `[Reply to previous message] ${message.content}`;
                 } else if (hasAyakaName) {
                     enhancedMessage = `[Mentioned by name] ${message.content}`;
+                } else if (isDM) {
+                    enhancedMessage = `[Direct message] ${message.content}`;
                 }
 
                 const enhancedPrompt = ayakaHelpers.enhancePromptWithContext(
